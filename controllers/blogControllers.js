@@ -356,7 +356,7 @@ module.exports = {
         { isDeleted: true },
         { where: { UserId: req.user.id, id: req.body.BlogId } }
       );
-      if (result[0] == 1) throw { message: "Delete blog failed" };
+      if (result[0] == 0) throw { message: "Delete blog failed" };
       res.status(200).send({
         result,
         message: "Delete blog success",

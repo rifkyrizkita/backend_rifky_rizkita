@@ -156,14 +156,15 @@ module.exports = {
   resetPassword: async (req, res) => {
     try {
       const { password, confirmPassword } = req.body;
-
+      console.log(req.user.id);
       const salt = await bcrypt.genSalt(10);
       const hashPassword = await bcrypt.hash(password, salt);
       const result = await user.update(
         { password: hashPassword },
         { where: { id: req.user.id } }
       );
-      res.status(200).send({ message: "Password has been changed" });
+      if(result[0] == 0) throw {message:"Password failed to changed"}
+      res.status(200).send({result, message: "Password has been changed" });
     } catch (error) {
       console.log(error);
       res.status(400).send(error);
