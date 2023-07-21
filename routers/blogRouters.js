@@ -15,6 +15,8 @@ router.get("/getallblog", blogControllers.getAllBlog);
 router.get("/getuserblog", verifyToken, blogControllers.getUserBlog);
 router.post("/likeblog", verifyToken, blogControllers.likeBlog);
 router.get("/getlikedblog", verifyToken, blogControllers.getLikedBlog);
+router.get("/mostfavblog", blogControllers.getMostFavBlog)
+router.patch("/deleteblog", verifyToken, blogControllers.deleteBlog)
 router.get("/:id", blogControllers.getBlogbyId)
 
 module.exports = router;

@@ -38,9 +38,10 @@ module.exports = {
       const limit = +req.query.limit || 10;
       const search = req.query.search;
       const cat_id = req.query.cat_id;
-      const sort = req.query.sort || "ASC";
+      const sort = req.query.sort || "DESC";
       const sortLike = req.query.sortLike || "ASC";
-      const condition = {};
+      const cat_name = req.query.cat_name;
+      const condition = { isDeleted: false };
       if (search) {
         condition[Op.or] = [
           {
@@ -55,7 +56,14 @@ module.exports = {
           },
         ];
       }
-      if (cat_id) condition.CategoryId = cat_id;
+      if (cat_name) {
+        condition["$Category.category$"] = {
+          [Op.like]: `%${cat_name}%`,
+        };
+      }
+      if (cat_id) {
+        condition.CategoryId = cat_id;
+      }
       const offset = (page - 1) * limit;
       const total = await blog.count({ where: condition });
       const result = await blog.findAll({
@@ -106,9 +114,9 @@ module.exports = {
       const limit = +req.query.limit || 10;
       const search = req.query.search;
       const cat_id = req.query.cat_id;
-      const sort = req.query.sort || "ASC";
+      const sort = req.query.sort || "DESC";
 
-      const condition = {};
+      const condition = { isDeleted: false };
       if (search) {
         condition[Op.or] = [
           {
@@ -207,9 +215,9 @@ module.exports = {
       const limit = +req.query.limit || 10;
       const search = req.query.search;
       const cat_id = req.query.cat_id;
-      const sort = req.query.sort || "ASC";
+      const sort = req.query.sort || "DESC";
 
-      const condition = {};
+      const condition = { isDeleted: false };
       if (search) {
         condition[Op.or] = [
           {
@@ -323,7 +331,7 @@ module.exports = {
         include: [{ model: category }, { model: user }],
         where: { id: req.params.id },
         limit,
-        offset:offset,
+        offset: offset,
       });
       result.forEach((blog) => {
         blog.dataValues.createdAt = new Date(
@@ -342,18 +350,68 @@ module.exports = {
       console.log(error);
     }
   },
-  deleteBlog : async (req, res) => {
+  deleteBlog: async (req, res) => {
     try {
-        const result = await blog.update(
-          {isDeleted: true},
-            { where : {UserId : req.user.id, id : req.body.BlogId}}
-        )
-        
-        res.status(200).send({
-            message : "Delete blog success",
-        })
+      const result = await blog.update(
+        { isDeleted: true },
+        { where: { UserId: req.user.id, id: req.body.BlogId } }
+      );
+      if (result[0] == 1) throw { message: "Delete blog failed" };
+      res.status(200).send({
+        result,
+        message: "Delete blog success",
+      });
     } catch (error) {
-        res.status(400).send(error)
+      res.status(400).send(error);
     }
-}
+  },
+  getMostFavBlog: async (req, res) => {
+    try {
+      const page = +req.query.page || 1;
+      const limit = +req.query.limit || 10;
+      const condition = {isDeleted:false};
+      const offset = (page - 1) * limit;
+      const total = await blog.count({ where: condition });
+      const result = await blog.findAll({
+        attributes: [
+          "title",
+          "author",
+          "content",
+          "imgBlog",
+          "keywords",
+          "country",
+          "link",
+          [
+            Sequelize.literal(
+              "(SELECT COUNT(*) FROM likes WHERE likes.BlogId = blog.id)"
+            ),
+            "totalLike",
+          ],
+          "createdAt",
+          "CategoryId",
+          "UserId",
+        ],
+        include: [{ model: category }, { model: user }],
+        where: condition,
+        order: [["totalLike", "DESC"]],
+        limit,
+        offset: offset,
+      });
+      result.forEach((blog) => {
+        blog.dataValues.createdAt = new Date(
+          blog.dataValues.createdAt
+        ).toLocaleDateString();
+      });
+      res.status(200).send({
+        totalpage: Math.ceil(total / limit),
+        currentpage: page,
+        total_blog: total,
+        result,
+        status: true,
+      });
+    } catch (error) {
+      console.log(error);
+      res.status(400).send(error);
+    }
+  },
 };
