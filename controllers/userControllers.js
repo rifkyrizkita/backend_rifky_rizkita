@@ -295,7 +295,11 @@ module.exports = {
   },
   uploadPic: async (req, res) => {
     try {
-      await user.update(
+      
+      if (req.file == undefined) {
+        throw {message:"Image should not be empty"}
+      }
+      const result = await user.update(
         {
           imgProfile: req.file.filename,
         },
@@ -305,7 +309,7 @@ module.exports = {
           },
         }
       );
-      res.status(200).send("Upload success");
+      res.status(200).send({result,message:"Upload success"});
     } catch (error) {
       res.status(400).send(error);
       console.log(error);
