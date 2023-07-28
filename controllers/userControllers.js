@@ -7,6 +7,7 @@ const { Op } = require("sequelize");
 const transporter = require("../middlewares/transporter");
 const fs = require("fs");
 const handlebars = require("handlebars");
+
 module.exports = {
   register: async (req, res) => {
     try {
@@ -48,7 +49,6 @@ module.exports = {
   },
   verifyAccount: async (req, res) => {
     try {
-    
       const isAccountExist = await user.findOne({
         where: {
           id: req.user.id,
@@ -61,14 +61,14 @@ module.exports = {
       });
       console.log(req.headers.authorization);
       tokenVerify = req.headers.authorization.split(" ")[1];
-      
+
       if (isAccountExist.isVerified) throw { msg: "Account already verified" };
       if (isTokenExist == null) {
         await token_.create({ token: tokenVerify, UserId: req.user.id });
       } else if (tokenVerify == isTokenExist.token) {
         throw { msg: "Token is expired" };
       }
-      
+
       //if (tokenVerify == isTokenExist.token) throw { msg: "Token is expired" };
       const result = await user.update(
         {
@@ -134,7 +134,8 @@ module.exports = {
       const result = await user.findOne({
         where: { email: email },
       });
-      if (email !== result.email) throw { msg: "Account not found" };
+
+      if (result == null) throw { msg: "Account not found" };
       const username = result.username;
       const payload = { id: result.id };
       const token = jwt.sign(payload, process.env.KEY_JWT, { expiresIn: "1h" });
@@ -163,8 +164,8 @@ module.exports = {
         { password: hashPassword },
         { where: { id: req.user.id } }
       );
-      if(result[0] == 0) throw {message:"Password failed to changed"}
-      res.status(200).send({result, message: "Password has been changed" });
+      if (result[0] == 0) throw { message: "Password failed to changed" };
+      res.status(200).send({ result, message: "Password has been changed" });
     } catch (error) {
       console.log(error);
       res.status(400).send(error);
@@ -217,7 +218,7 @@ module.exports = {
 
         { where: { id: req.user.id } }
       );
-      const payload = { id: isAccountExist.id};
+      const payload = { id: isAccountExist.id };
       const token = jwt.sign(payload, "backend_rrg", { expiresIn: "1h" });
       const data = await fs.readFileSync("./templatechangeemail.html", "utf-8");
       const tempCompile = await handlebars.compile(data);
@@ -295,9 +296,8 @@ module.exports = {
   },
   uploadPic: async (req, res) => {
     try {
-      
       if (req.file == undefined) {
-        throw {message:"Image should not be empty"}
+        throw { message: "Image should not be empty" };
       }
       const result = await user.update(
         {
@@ -309,7 +309,7 @@ module.exports = {
           },
         }
       );
-      res.status(200).send({result,message:"Upload success"});
+      res.status(200).send({ result, message: "Upload success" });
     } catch (error) {
       res.status(400).send(error);
       console.log(error);
